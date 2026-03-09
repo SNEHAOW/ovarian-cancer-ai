@@ -2,7 +2,10 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-# Load trained model
+# -----------------------
+# LOAD MODEL
+# -----------------------
+
 model = joblib.load("xgboost_ovarian_model.pkl")
 
 st.set_page_config(page_title="Ovarian Cancer AI Predictor", layout="wide")
@@ -10,178 +13,181 @@ st.set_page_config(page_title="Ovarian Cancer AI Predictor", layout="wide")
 st.title("AI Assisted Ovarian Cancer Risk Prediction")
 
 st.markdown("""
-This system evaluates ovarian cancer risk using symptoms, clinical history,
+This system estimates ovarian cancer risk using symptoms, clinical history,
 lab tests, and imaging findings.
 
-⚠️ Educational demonstration only.
+⚠️ Educational use only.
 """)
 
-# -------------------------
-# SIDEBAR INPUT
-# -------------------------
+# -----------------------
+# SIDEBAR INPUTS
+# -----------------------
 
-st.sidebar.header("Patient Case Information")
+st.sidebar.header("Patient Information")
 
-age = st.sidebar.number_input("Age", 18, 100, 50)
+age = st.sidebar.number_input("Age",18,100,50)
 
-pcos = st.sidebar.selectbox("PCOS", ["No", "Yes"])
-pcos = 1 if pcos == "Yes" else 0
+PCOS = 1 if st.sidebar.checkbox("PCOS") else 0
+endometriosis = 1 if st.sidebar.checkbox("Endometriosis") else 0
 
-endometriosis = st.sidebar.selectbox("Endometriosis", ["No", "Yes"])
-endometriosis = 1 if endometriosis == "Yes" else 0
-
-# -------------------------
+# -----------------------
 # SYMPTOMS
-# -------------------------
+# -----------------------
 
 st.sidebar.subheader("Symptoms")
 
-def yn(label):
-    return 1 if st.sidebar.checkbox(label) else 0
+abdominal_pain = 1 if st.sidebar.checkbox("Abdominal Pain") else 0
+nausea = 1 if st.sidebar.checkbox("Nausea") else 0
+pelvic_pressure = 1 if st.sidebar.checkbox("Pelvic Pressure") else 0
+decreased_appetite = 1 if st.sidebar.checkbox("Decreased Appetite") else 0
+abdominal_distension = 1 if st.sidebar.checkbox("Abdominal Distension") else 0
+intermittent_lower_back_pain = 1 if st.sidebar.checkbox("Lower Back Pain") else 0
+urinary_frequency = 1 if st.sidebar.checkbox("Urinary Frequency") else 0
+previous_surgery = 1 if st.sidebar.checkbox("Previous Surgery") else 0
+bloating = 1 if st.sidebar.checkbox("Bloating") else 0
+trouble_breathing = 1 if st.sidebar.checkbox("Trouble Breathing") else 0
+pelvic_pain = 1 if st.sidebar.checkbox("Pelvic Pain") else 0
+early_satiety = 1 if st.sidebar.checkbox("Early Satiety") else 0
 
-abdominal_pain = yn("Abdominal Pain")
-nausea = yn("Nausea")
-pelvic_pressure = yn("Pelvic Pressure")
-decreased_appetite = yn("Decreased Appetite")
-abdominal_distension = yn("Abdominal Distension")
-intermittent_lower_back_pain = yn("Lower Back Pain")
-urinary_frequency = yn("Urinary Frequency")
-previous_surgery = yn("Previous Surgery")
-bloating = yn("Bloating")
-trouble_breathing = yn("Trouble Breathing")
-pelvic_pain = yn("Pelvic Pain")
-early_satiety = yn("Early Satiety")
-
-# -------------------------
-# MENSTRUAL CYCLE
-# -------------------------
-
-menstrual = st.sidebar.selectbox(
+menstrual_cycles = st.sidebar.selectbox(
     "Menstrual Cycle",
-    ["Low Flow", "Regular Flow", "Heavy Flow"]
+    [0,1,2],
+    help="0 = irregular, 1 = normal, 2 = heavy"
 )
 
-if menstrual == "Low Flow":
-    menstrual_cycles = 0
-elif menstrual == "Regular Flow":
-    menstrual_cycles = 1
-else:
-    menstrual_cycles = 2
-
-# -------------------------
-# GENETIC RISK
-# -------------------------
+# -----------------------
+# GENETIC
+# -----------------------
 
 st.sidebar.subheader("Genetic Risk")
 
-brca = st.sidebar.selectbox("BRCA Mutation Risk", ["Low Risk", "High Risk"])
-BRCA_mutation = 1 if brca == "High Risk" else 0
+BRCA_mutation = 1 if st.sidebar.checkbox("BRCA Mutation") else 0
+colon_cancer_in_family = 1 if st.sidebar.checkbox("Colon Cancer in Family") else 0
 
-colon_cancer_in_family = yn("Colon Cancer in Family")
+# -----------------------
+# COMORBIDITIES
+# -----------------------
 
-# -------------------------
+st.sidebar.subheader("Comorbidities")
+
+hypertension = 1 if st.sidebar.checkbox("Hypertension") else 0
+hyperlipidemia = 1 if st.sidebar.checkbox("Hyperlipidemia") else 0
+
+# -----------------------
 # VITALS
-# -------------------------
+# -----------------------
 
 st.sidebar.subheader("Vitals")
 
-systolic_bp = st.sidebar.number_input("Systolic BP", 80, 200, 120)
-diastolic_bp = st.sidebar.number_input("Diastolic BP", 40, 120, 80)
+systolic_bp = st.sidebar.number_input("Systolic BP",80,200,120)
+diastolic_bp = st.sidebar.number_input("Diastolic BP",40,120,80)
 
-HR = st.sidebar.number_input("Heart Rate", 40, 200, 80)
-BMI = st.sidebar.number_input("BMI", 10.0, 60.0, 25.0)
+HR = st.sidebar.number_input("Heart Rate",40,200,80)
+BMI = st.sidebar.number_input("BMI",10.0,60.0,25.0)
 
-hypertension = st.sidebar.selectbox("Hypertension", ["No", "Yes"])
-hypertension = 1 if hypertension == "Yes" else 0
+# -----------------------
+# BLOOD TESTS
+# -----------------------
 
-# -------------------------
-# LAB TESTS
-# -------------------------
+st.sidebar.subheader("Blood Tests")
 
-st.sidebar.subheader("Lab Tests")
+hemoglobin = st.sidebar.number_input("Hemoglobin",0.0,25.0,12.0)
+WBC = st.sidebar.number_input("WBC",0.0,50.0,7.0)
+platelets = st.sidebar.number_input("Platelets",0.0,1000.0,300.0)
 
-hemoglobin = st.sidebar.number_input("Hemoglobin", 0.0, 25.0, 12.0)
-WBC = st.sidebar.number_input("WBC", 0.0, 50.0, 7.0)
-platelets = st.sidebar.number_input("Platelets", 0.0, 1000.0, 300.0)
+CA125 = st.sidebar.number_input("CA-125",0.0,5000.0,35.0)
+CEA = st.sidebar.number_input("CEA",0.0,100.0,2.0)
 
-CA125 = st.sidebar.number_input("CA-125", 0.0, 5000.0, 35.0)
-CEA = st.sidebar.number_input("CEA", 0.0, 100.0, 2.0)
-
-# -------------------------
+# -----------------------
 # IMAGING
-# -------------------------
+# -----------------------
 
-st.sidebar.subheader("Imaging Findings")
+st.sidebar.subheader("Imaging")
 
-mass_size = st.sidebar.number_input("Mass Size", 0.0, 30.0, 5.0)
+mass_size = st.sidebar.number_input("Mass Size",0.0,30.0,5.0)
 
-solid_nodule_mass = yn("Solid Nodule Mass")
-ascites = yn("Ascites")
-omental_nodularity = yn("Omental Nodularity")
-omental_thickening = yn("Omental Thickening")
-liver_metastasis = yn("Liver Metastasis")
-omental_adhesion = yn("Omental Adhesion")
-peritoneal_implants = yn("Peritoneal Implants")
-peritoneal_disease = yn("Peritoneal Disease")
-papillary_projections = yn("Papillary Projections")
-omental_metastasis = yn("Omental Metastasis")
+solid_nodule_mass = 1 if st.sidebar.checkbox("Solid Nodule Mass") else 0
+ascites = 1 if st.sidebar.checkbox("Ascites") else 0
+omental_nodularity = 1 if st.sidebar.checkbox("Omental Nodularity") else 0
+omental_thickening = 1 if st.sidebar.checkbox("Omental Thickening") else 0
+liver_metastasis = 1 if st.sidebar.checkbox("Liver Metastasis") else 0
+omental_adhesion = 1 if st.sidebar.checkbox("Omental Adhesion") else 0
+peritoneal_implants = 1 if st.sidebar.checkbox("Peritoneal Implants") else 0
+peritoneal_disease = 1 if st.sidebar.checkbox("Peritoneal Disease") else 0
+papillary_projections = 1 if st.sidebar.checkbox("Papillary Projections") else 0
+omental_metastasis = 1 if st.sidebar.checkbox("Omental Metastasis") else 0
 
-# -------------------------
-# COMORBIDITIES
-# -------------------------
-
-hyperlipidemia = yn("Hyperlipidemia")
-
-# -------------------------
-# MODEL INPUT
-# -------------------------
+# -----------------------
+# CREATE DATAFRAME
+# -----------------------
 
 input_data = pd.DataFrame([{
-    "age": age,
-    "PCOS": pcos,
-    "endometriosis": endometriosis,
-    "abdominal_pain": abdominal_pain,
-    "nausea": nausea,
-    "pelvic_pressure": pelvic_pressure,
-    "decreased_appetite": decreased_appetite,
-    "abdominal_distension": abdominal_distension,
-    "intermittent_lower_back_pain": intermittent_lower_back_pain,
-    "urinary_frequency": urinary_frequency,
-    "previous_surgery": previous_surgery,
-    "bloating": bloating,
-    "trouble_breathing": trouble_breathing,
-    "pelvic_pain": pelvic_pain,
-    "menstrual_cycles": menstrual_cycles,
-    "early_satiety": early_satiety,
-    "BRCA_mutation": BRCA_mutation,
-    "colon_cancer_in_family": colon_cancer_in_family,
-    "hypertension": hypertension,
-    "systolic_bp": systolic_bp,
-    "diastolic_bp": diastolic_bp,
-    "HR": HR,
-    "BMI": BMI,
-    "hemoglobin": hemoglobin,
-    "WBC": WBC,
-    "platelets": platelets,
-    "CA125": CA125,
-    "CEA": CEA,
-    "mass_size": mass_size,
-    "solid_nodule_mass": solid_nodule_mass,
-    "ascites": ascites,
-    "omental_nodularity": omental_nodularity,
-    "omental_thickening": omental_thickening,
-    "liver_metastasis": liver_metastasis,
-    "omental_adhesion": omental_adhesion,
-    "peritoneal_implants": peritoneal_implants,
-    "peritoneal_disease": peritoneal_disease,
-    "papillary_projections": papillary_projections,
-    "omental_metastasis": omental_metastasis,
-    "hyperlipidemia": hyperlipidemia
+
+"age":age,
+"PCOS":PCOS,
+"endometriosis":endometriosis,
+"abdominal_pain":abdominal_pain,
+"nausea":nausea,
+"pelvic_pressure":pelvic_pressure,
+"decreased_appetite":decreased_appetite,
+"abdominal_distension":abdominal_distension,
+"intermittent_lower_back_pain":intermittent_lower_back_pain,
+"urinary_frequency":urinary_frequency,
+"previous_surgery":previous_surgery,
+"bloating":bloating,
+"trouble_breathing":trouble_breathing,
+"pelvic_pain":pelvic_pain,
+"menstrual_cycles":menstrual_cycles,
+"early_satiety":early_satiety,
+"BRCA_mutation":BRCA_mutation,
+"colon_cancer_in_family":colon_cancer_in_family,
+"hypertension":hypertension,
+"systolic_bp":systolic_bp,
+"diastolic_bp":diastolic_bp,
+"HR":HR,
+"BMI":BMI,
+"hemoglobin":hemoglobin,
+"WBC":WBC,
+"platelets":platelets,
+"CA125":CA125,
+"CEA":CEA,
+"mass_size":mass_size,
+"solid_nodule_mass":solid_nodule_mass,
+"ascites":ascites,
+"omental_nodularity":omental_nodularity,
+"omental_thickening":omental_thickening,
+"liver_metastasis":liver_metastasis,
+"omental_adhesion":omental_adhesion,
+"peritoneal_implants":peritoneal_implants,
+"peritoneal_disease":peritoneal_disease,
+"papillary_projections":papillary_projections,
+"omental_metastasis":omental_metastasis,
+"hyperlipidemia":hyperlipidemia
+
 }])
 
-# -------------------------
+# -----------------------
+# FORCE FEATURE ORDER
+# -----------------------
+
+model_features = [
+'age','PCOS','endometriosis','abdominal_pain','nausea','pelvic_pressure',
+'decreased_appetite','abdominal_distension','intermittent_lower_back_pain',
+'urinary_frequency','previous_surgery','bloating','trouble_breathing',
+'pelvic_pain','menstrual_cycles','early_satiety','BRCA_mutation',
+'colon_cancer_in_family','hypertension','systolic_bp','diastolic_bp','HR',
+'BMI','hemoglobin','WBC','platelets','CA125','CEA','mass_size',
+'solid_nodule_mass','ascites','omental_nodularity','omental_thickening',
+'liver_metastasis','omental_adhesion','peritoneal_implants',
+'peritoneal_disease','papillary_projections','omental_metastasis',
+'hyperlipidemia'
+]
+
+input_data = input_data[model_features]
+
+# -----------------------
 # PREDICTION
-# -------------------------
+# -----------------------
 
 st.subheader("Prediction")
 
@@ -191,8 +197,11 @@ if st.button("Run AI Prediction"):
     probability = model.predict_proba(input_data)[0][1]
 
     if prediction == 1:
-        st.error("High Risk: Ovarian Cancer Likely")
+
+        st.error("High Risk: Ovarian Malignancy Likely")
+
     else:
-        st.success("Low Risk: Ovarian Cancer Unlikely")
+
+        st.success("Low Risk: Ovarian Malignancy Unlikely")
 
     st.write(f"Predicted Cancer Probability: **{probability:.2%}**")
