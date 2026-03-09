@@ -1,172 +1,198 @@
+import streamlit as st
 import pandas as pd
-import numpy as np
+import joblib
 
-np.random.seed(42)
+# Load trained model
+model = joblib.load("xgboost_ovarian_model.pkl")
 
-# DATASET SIZE
-n = 20000
+st.set_page_config(page_title="Ovarian Cancer AI Predictor", layout="wide")
 
-data = []
+st.title("AI Assisted Ovarian Cancer Risk Prediction")
 
-for i in range(n):
+st.markdown("""
+This system evaluates ovarian cancer risk using symptoms, clinical history,
+lab tests, and imaging findings.
 
-    # target variable
-    cancer = np.random.choice([0,1], p=[0.7,0.3])
+⚠️ Educational demonstration only.
+""")
 
-    # ---------------------
-    # DEMOGRAPHICS
-    # ---------------------
+# -------------------------
+# SIDEBAR INPUT
+# -------------------------
 
-    age = int(np.clip(np.random.normal(55 if cancer else 40, 12),18,90))
+st.sidebar.header("Patient Case Information")
 
-    PCOS = np.random.binomial(1,0.15)
-    endometriosis = np.random.binomial(1,0.1)
+age = st.sidebar.number_input("Age", 18, 100, 50)
 
-    # ---------------------
-    # SYMPTOMS
-    # ---------------------
+pcos = st.sidebar.selectbox("PCOS", ["No", "Yes"])
+pcos = 1 if pcos == "Yes" else 0
 
-    abdominal_pain = np.random.binomial(1,0.7 if cancer else 0.2)
-    nausea = np.random.binomial(1,0.5 if cancer else 0.15)
-    pelvic_pressure = np.random.binomial(1,0.65 if cancer else 0.2)
-    decreased_appetite = np.random.binomial(1,0.6 if cancer else 0.15)
-    abdominal_distension = np.random.binomial(1,0.8 if cancer else 0.1)
-    intermittent_lower_back_pain = np.random.binomial(1,0.6 if cancer else 0.25)
-    urinary_frequency = np.random.binomial(1,0.55 if cancer else 0.2)
-    previous_surgery = np.random.binomial(1,0.25)
-    bloating = np.random.binomial(1,0.75 if cancer else 0.2)
-    trouble_breathing = np.random.binomial(1,0.3 if cancer else 0.05)
-    pelvic_pain = np.random.binomial(1,0.7 if cancer else 0.2)
-    early_satiety = np.random.binomial(1,0.7 if cancer else 0.1)
+endometriosis = st.sidebar.selectbox("Endometriosis", ["No", "Yes"])
+endometriosis = 1 if endometriosis == "Yes" else 0
 
-    # menstrual cycle encoded
-    menstrual_cycles = np.random.choice([0,1,2])
+# -------------------------
+# SYMPTOMS
+# -------------------------
 
-    # ---------------------
-    # GENETIC RISK
-    # ---------------------
+st.sidebar.subheader("Symptoms")
 
-    BRCA_mutation = np.random.binomial(1,0.08)
-    colon_cancer_in_family = np.random.binomial(1,0.1)
+def yn(label):
+    return 1 if st.sidebar.checkbox(label) else 0
 
-    # ---------------------
-    # COMORBIDITIES
-    # ---------------------
+abdominal_pain = yn("Abdominal Pain")
+nausea = yn("Nausea")
+pelvic_pressure = yn("Pelvic Pressure")
+decreased_appetite = yn("Decreased Appetite")
+abdominal_distension = yn("Abdominal Distension")
+intermittent_lower_back_pain = yn("Lower Back Pain")
+urinary_frequency = yn("Urinary Frequency")
+previous_surgery = yn("Previous Surgery")
+bloating = yn("Bloating")
+trouble_breathing = yn("Trouble Breathing")
+pelvic_pain = yn("Pelvic Pain")
+early_satiety = yn("Early Satiety")
 
-    hypertension = np.random.binomial(1,0.35)
-    hyperlipidemia = np.random.binomial(1,0.3)
+# -------------------------
+# MENSTRUAL CYCLE
+# -------------------------
 
-    # ---------------------
-    # VITALS
-    # ---------------------
+menstrual = st.sidebar.selectbox(
+    "Menstrual Cycle",
+    ["Low Flow", "Regular Flow", "Heavy Flow"]
+)
 
-    systolic_bp = int(np.random.normal(135 if hypertension else 120,10))
-    diastolic_bp = int(np.random.normal(85 if hypertension else 75,8))
+if menstrual == "Low Flow":
+    menstrual_cycles = 0
+elif menstrual == "Regular Flow":
+    menstrual_cycles = 1
+else:
+    menstrual_cycles = 2
 
-    HR = int(np.random.normal(85 if cancer else 75,10))
+# -------------------------
+# GENETIC RISK
+# -------------------------
 
-    BMI = round(np.random.normal(27,5),1)
+st.sidebar.subheader("Genetic Risk")
 
-    # ---------------------
-    # BLOOD TESTS
-    # ---------------------
+brca = st.sidebar.selectbox("BRCA Mutation Risk", ["Low Risk", "High Risk"])
+BRCA_mutation = 1 if brca == "High Risk" else 0
 
-    hemoglobin = round(np.random.normal(11 if cancer else 13.5,1.2),1)
+colon_cancer_in_family = yn("Colon Cancer in Family")
 
-    WBC = round(np.random.normal(9 if cancer else 7,2),1)
+# -------------------------
+# VITALS
+# -------------------------
 
-    platelets = round(np.random.normal(350 if cancer else 250,70),1)
+st.sidebar.subheader("Vitals")
 
-    CA125 = max(0, round(np.random.normal(400 if cancer else 20,120),1))
+systolic_bp = st.sidebar.number_input("Systolic BP", 80, 200, 120)
+diastolic_bp = st.sidebar.number_input("Diastolic BP", 40, 120, 80)
 
-    CEA = max(0, round(np.random.normal(6 if cancer else 2,1.5),1))
+HR = st.sidebar.number_input("Heart Rate", 40, 200, 80)
+BMI = st.sidebar.number_input("BMI", 10.0, 60.0, 25.0)
 
-    # ---------------------
-    # IMAGING
-    # ---------------------
+hypertension = st.sidebar.selectbox("Hypertension", ["No", "Yes"])
+hypertension = 1 if hypertension == "Yes" else 0
 
-    mass_size = round(abs(np.random.normal(7 if cancer else 2,2)),1)
+# -------------------------
+# LAB TESTS
+# -------------------------
 
-    solid_nodule_mass = np.random.binomial(1,0.7 if cancer else 0.05)
+st.sidebar.subheader("Lab Tests")
 
-    ascites = np.random.binomial(1,0.6 if cancer else 0.02)
+hemoglobin = st.sidebar.number_input("Hemoglobin", 0.0, 25.0, 12.0)
+WBC = st.sidebar.number_input("WBC", 0.0, 50.0, 7.0)
+platelets = st.sidebar.number_input("Platelets", 0.0, 1000.0, 300.0)
 
-    omental_nodularity = np.random.binomial(1,0.65 if cancer else 0.03)
+CA125 = st.sidebar.number_input("CA-125", 0.0, 5000.0, 35.0)
+CEA = st.sidebar.number_input("CEA", 0.0, 100.0, 2.0)
 
-    omental_thickening = np.random.binomial(1,0.65 if cancer else 0.03)
+# -------------------------
+# IMAGING
+# -------------------------
 
-    liver_metastasis = np.random.binomial(1,0.15 if cancer else 0.005)
+st.sidebar.subheader("Imaging Findings")
 
-    omental_adhesion = np.random.binomial(1,0.6 if cancer else 0.03)
+mass_size = st.sidebar.number_input("Mass Size", 0.0, 30.0, 5.0)
 
-    peritoneal_implants = np.random.binomial(1,0.6 if cancer else 0.02)
+solid_nodule_mass = yn("Solid Nodule Mass")
+ascites = yn("Ascites")
+omental_nodularity = yn("Omental Nodularity")
+omental_thickening = yn("Omental Thickening")
+liver_metastasis = yn("Liver Metastasis")
+omental_adhesion = yn("Omental Adhesion")
+peritoneal_implants = yn("Peritoneal Implants")
+peritoneal_disease = yn("Peritoneal Disease")
+papillary_projections = yn("Papillary Projections")
+omental_metastasis = yn("Omental Metastasis")
 
-    peritoneal_disease = np.random.binomial(1,0.6 if cancer else 0.02)
+# -------------------------
+# COMORBIDITIES
+# -------------------------
 
-    papillary_projections = np.random.binomial(1,0.7 if cancer else 0.02)
+hyperlipidemia = yn("Hyperlipidemia")
 
-    omental_metastasis = np.random.binomial(1,0.6 if cancer else 0.01)
+# -------------------------
+# MODEL INPUT
+# -------------------------
 
-    row = {
+input_data = pd.DataFrame([{
+    "age": age,
+    "PCOS": pcos,
+    "endometriosis": endometriosis,
+    "abdominal_pain": abdominal_pain,
+    "nausea": nausea,
+    "pelvic_pressure": pelvic_pressure,
+    "decreased_appetite": decreased_appetite,
+    "abdominal_distension": abdominal_distension,
+    "intermittent_lower_back_pain": intermittent_lower_back_pain,
+    "urinary_frequency": urinary_frequency,
+    "previous_surgery": previous_surgery,
+    "bloating": bloating,
+    "trouble_breathing": trouble_breathing,
+    "pelvic_pain": pelvic_pain,
+    "menstrual_cycles": menstrual_cycles,
+    "early_satiety": early_satiety,
+    "BRCA_mutation": BRCA_mutation,
+    "colon_cancer_in_family": colon_cancer_in_family,
+    "hypertension": hypertension,
+    "systolic_bp": systolic_bp,
+    "diastolic_bp": diastolic_bp,
+    "HR": HR,
+    "BMI": BMI,
+    "hemoglobin": hemoglobin,
+    "WBC": WBC,
+    "platelets": platelets,
+    "CA125": CA125,
+    "CEA": CEA,
+    "mass_size": mass_size,
+    "solid_nodule_mass": solid_nodule_mass,
+    "ascites": ascites,
+    "omental_nodularity": omental_nodularity,
+    "omental_thickening": omental_thickening,
+    "liver_metastasis": liver_metastasis,
+    "omental_adhesion": omental_adhesion,
+    "peritoneal_implants": peritoneal_implants,
+    "peritoneal_disease": peritoneal_disease,
+    "papillary_projections": papillary_projections,
+    "omental_metastasis": omental_metastasis,
+    "hyperlipidemia": hyperlipidemia
+}])
 
-        "age":age,
-        "PCOS":PCOS,
-        "endometriosis":endometriosis,
+# -------------------------
+# PREDICTION
+# -------------------------
 
-        "abdominal_pain":abdominal_pain,
-        "nausea":nausea,
-        "pelvic_pressure":pelvic_pressure,
-        "decreased_appetite":decreased_appetite,
-        "abdominal_distension":abdominal_distension,
-        "intermittent_lower_back_pain":intermittent_lower_back_pain,
-        "urinary_frequency":urinary_frequency,
-        "previous_surgery":previous_surgery,
-        "bloating":bloating,
-        "trouble_breathing":trouble_breathing,
-        "pelvic_pain":pelvic_pain,
-        "menstrual_cycles":menstrual_cycles,
-        "early_satiety":early_satiety,
+st.subheader("Prediction")
 
-        "BRCA_mutation":BRCA_mutation,
-        "colon_cancer_in_family":colon_cancer_in_family,
+if st.button("Run AI Prediction"):
 
-        "hypertension":hypertension,
-        "systolic_bp":systolic_bp,
-        "diastolic_bp":diastolic_bp,
+    prediction = model.predict(input_data)[0]
+    probability = model.predict_proba(input_data)[0][1]
 
-        "HR":HR,
-        "BMI":BMI,
+    if prediction == 1:
+        st.error("High Risk: Ovarian Cancer Likely")
+    else:
+        st.success("Low Risk: Ovarian Cancer Unlikely")
 
-        "hemoglobin":hemoglobin,
-        "WBC":WBC,
-        "platelets":platelets,
-        "CA125":CA125,
-        "CEA":CEA,
-
-        "mass_size":mass_size,
-        "solid_nodule_mass":solid_nodule_mass,
-        "ascites":ascites,
-        "omental_nodularity":omental_nodularity,
-        "omental_thickening":omental_thickening,
-        "liver_metastasis":liver_metastasis,
-        "omental_adhesion":omental_adhesion,
-        "peritoneal_implants":peritoneal_implants,
-        "peritoneal_disease":peritoneal_disease,
-        "papillary_projections":papillary_projections,
-        "omental_metastasis":omental_metastasis,
-
-        "hyperlipidemia":hyperlipidemia,
-
-        "ovarian_cancer":cancer
-    }
-
-    data.append(row)
-
-df = pd.DataFrame(data)
-
-df.to_csv("ovarian_cancer_training_dataset_20000.csv",index=False)
-
-print("Dataset created successfully")
-print(df.shape)
-print("\nCancer distribution:")
-print(df["ovarian_cancer"].value_counts())
+    st.write(f"Predicted Cancer Probability: **{probability:.2%}**")
