@@ -7,16 +7,16 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from xgboost import XGBClassifier
 
 # Load dataset
-data = pd.read_csv("ovarian_cancer_training_dataset_1000.csv")
+data = pd.read_csv("ovarian_cancer_training_dataset_20000.csv")
 
 print("Dataset shape:", data.shape)
 
 print("\nCancer distribution:")
-print(data["Cancer"].value_counts())
+print(data["ovarian_cancer"].value_counts())
 
 # Features and target
-X = data.drop("Cancer", axis=1)
-y = data["Cancer"]
+X = data.drop("ovarian_cancer", axis=1)
+y = data["ovarian_cancer"]
 
 # Train test split
 X_train, X_test, y_train, y_test = train_test_split(

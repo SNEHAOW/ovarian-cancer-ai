@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 # Load dataset
-data = pd.read_csv("ovarian_cancer_training_dataset_1000.csv")
+data = pd.read_csv("ovarian_cancer_training_dataset_20000.csv")
 
 print("Dataset shape:", data.shape)
 
